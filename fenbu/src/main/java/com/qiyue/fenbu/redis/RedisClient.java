@@ -1,7 +1,9 @@
 package com.qiyue.fenbu.redis;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.alibaba.fastjson.JSON;
@@ -189,6 +191,25 @@ public class RedisClient {
 			 return true;
 		 }finally {
 			 client.close();
+		 }
+	 }
+	 public <T> boolean hset(String key,String field,T t ) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			String afterSerialize=Util.beanToJson(t);
+			client.hset(key, field, afterSerialize);
+			return true;
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public <T,S> boolean hmset(String key,Map<T,S> map) {
+		 Jedis client =jedisPool.getResource();
+		 try {
+			 Iterator iterator=map.entrySet().iterator();
+			 return true;
+		 }finally {
+			 
 		 }
 	 }
 	 
