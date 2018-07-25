@@ -1,9 +1,11 @@
 package com.qiyue.fenbu.redis;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import com.alibaba.fastjson.JSON;
@@ -206,11 +208,282 @@ public class RedisClient {
 	 public <T,S> boolean hmset(String key,Map<T,S> map) {
 		 Jedis client =jedisPool.getResource();
 		 try {
-			 Iterator iterator=map.entrySet().iterator();
+			 Iterator<Entry<T,S>> iterator=map.entrySet().iterator();
+			 Map<String,String> stringMap=new HashMap<String,String>();
+			 String filed;
+			 String value;
+			 while(iterator.hasNext()) {
+				 Entry<T,S> entry=iterator.next();
+				 filed=String.valueOf(entry.getKey());
+				 value=Util.beanToJson(entry.getValue());
+				 stringMap.put(filed, value);
+			 }
+			 client.hmset(key, stringMap);
 			 return true;
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public <T> T hgetObject(String key,String field,Class<T> cls) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 String value=client.hget(key, field);
+			 return (T)Util.jsonToBean(value, cls);
+		 }finally{
+			 client.close();
+		 }
+	 }
+	 public String hgetString(String key,String field) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 String value=client.hget(key, field);
+			 return value;
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public Map<String,String> hGetAll(String key){
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.hgetAll(key);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public List<String> hkeys(String key){
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 List<String> fields=new ArrayList<String>();
+			 Set<String> set=client.hkeys(key);
+			 fields.addAll(set);
+			 return fields;
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public List<String> hvals(String key){
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 List<String> values=client.hvals(key);
+			 return values;
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public boolean hexists(String key,String field) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.hexists(key, field);
 		 }finally {
 			 
 		 }
 	 }
+	 public long incr(String key) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.incr(key);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public void hdel(String key,String... fields) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 client.hdel(key, fields);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public void lpush(String key,String field) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			client.lpush(key, field); 
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public void lpush(String key,Object obj) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 String field=Util.beanToJson(obj);
+			 client.lpush(key, field);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public void lpushForErrorMsg(String key,String field) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 if(client.llen(key)>1000) {
+				 return;
+			 }
+			 client.lpush(key, field);
+		 }finally {
+			client.close(); 
+		 }
+	 }
+	 public long llen(String key) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.llen(key);
+		 }finally {
+			 client.close(); 
+		 }
+	 }
+	 public List<String> blPop(String key,int timeoutSeconds){
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.blpop(timeoutSeconds, key);
+		 }finally {
+			 client.close(); 
+		 }
+	 }
+	 public <T> long sadd(String key,String...  values) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.sadd(key, values);
+		 }finally {
+			 client.close();
+		 }
+		 
+	 }
+	 public <T> long sadd(String key,List<T> ts) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 if(ts==null||ts.size()==0) {
+				 return 0l;
+			 }
+			 String[] values=new String[ts.size()];
+			 for(int i=0;i<ts.size();i++) {
+				 values[i]=ts.get(i).toString();
+			 }
+			 return client.sadd(key, values);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public long srem(String key,String... values) {
+		 Jedis client=jedisPool.getResource();
+		 try {
+			 return client.srem(key, values);
+		 }finally {
+			 client.close();
+		 }
+	 }
+	 public <T> long srem(String key, List<T> ts) {
+	        Jedis client = jedisPool.getResource();
+	        try {
+	            if (ts == null || ts.size() ==0) {
+	                return 0l;
+	            }
+	            String[] values = new String[ts.size()];
+	            for (int i = 0; i < ts.size(); i++) {
+	                values[i] = ts.get(i).toString();
+	            }
+	            return client.srem(key, values);
+	        } finally {
+	        	 client.close();
+	        }
+	    }
+	 public Set<String> getByRange(String key,double min,double max){
+		 Jedis client=jedisPool.getResource();
+		 try {
+			return client.zrangeByScore(key, min, max); 
+		 }finally {
+			 client.close();
+		 }
+	 }
+	public Long decr(String key) {
+		Jedis client=jedisPool.getResource();
+		try {
+			return client.decr(key);
+		}finally {
+			client.close();
+		}
+	}
+	public Long hlen(String key) {
+		Jedis client=jedisPool.getResource();
+		try {
+			return client.hlen(key);
+		}finally {
+			client.close();
+		}
+	}
+	public List<String> hmget(String key, String... fields) {
+        Jedis client = jedisPool.getResource();
+        try {
+            return client.hmget(key, fields);
+        } finally {
+            client.close();
+        }
+    }
+	   /**
+		 * 从redis里面得到以 某字符串开头的所有key
+		 * 
+		 * @param str
+		 * */
+		public Set<String> getKeyByStr(String str) {
+			Jedis client = jedisPool.getResource();
+
+			Set<String> keys = null;
+			try {
+				keys = client.keys(str);
+			} finally {
+				client.close();
+			}
+			return keys;
+		}
+		public void ltrim(String key, int start, int stop){
+			Jedis client = jedisPool.getResource();
+	        try {
+	            client.ltrim(key, start, stop);
+	        } finally{
+	        	client.close();
+	        }
+	    }
+		/**
+		 * 
+		 * @param key
+		 * @param seconds
+		 * @return
+		 */
+		public Long expire(String key,Integer seconds){
+			Jedis client = jedisPool.getResource();
+			Long success = 1l;
+			try{
+				success = client.expire(key, seconds);
+			}finally{
+				client.close();
+			}
+			return success;
+		}
+		/**
+	     * 存入的时hash结构的数据,并且去掉value中的引号
+	     *
+	     * @param key
+	     * key
+	     * @param map
+	     * map的key实质为field。
+	     * @return
+	     */
+	    public <T, S> boolean hmsetWithoutQuotationMarks(String key, Map<T, S> map) {
+	        Jedis client = jedisPool.getResource();
+	        try {
+	            Iterator<Entry<T, S>> iterator = map.entrySet().iterator();
+	            Map<String, String> stringMap = new HashMap<String, String>();
+	            String filed;
+	            String value;
+	            while (iterator.hasNext()) {
+	                Entry<T, S> entry = iterator.next();
+	                filed = String.valueOf(entry.getKey());
+	                value = JSON.toJSONString(entry.getValue()).replace("\"", "");
+	                stringMap.put(filed, value);
+	            }
+	            client.hmset(key, stringMap);
+	            return true;
+	        } finally {
+	            client.close();
+	        }
+	    }
 	 
 }

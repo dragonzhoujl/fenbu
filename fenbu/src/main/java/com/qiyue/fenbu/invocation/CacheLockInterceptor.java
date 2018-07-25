@@ -8,6 +8,7 @@ import com.qiyue.fenbu.annotation.CacheLock;
 import com.qiyue.fenbu.annotation.LockedComplexObject;
 import com.qiyue.fenbu.annotation.LockedObject;
 import com.qiyue.fenbu.exception.CacheLockException;
+import com.qiyue.fenbu.lock.RedisLock;
 
 public class CacheLockInterceptor implements InvocationHandler {
 	
@@ -30,9 +31,19 @@ public class CacheLockInterceptor implements InvocationHandler {
 		Annotation[][] annotations= method.getParameterAnnotations();
 		//根据获取到的参数注解和参数列表获得加锁的参数
         Object lockedObject = getLockedObject(annotations,args);
-       
-        
-		return null;
+        String objectValue=lockedObject.toString();
+        RedisLock lock=new RedisLock(cacheLock.lockedPrefix(),objectValue);
+        boolean result=lock.lock(cacheLock.timeout(), cacheLock.expireTime());
+        if(!result) {
+        	ERROR_COUNT+=1;
+        	throw new CacheLockException("get lock failed");
+        }
+        try {
+        	return method.invoke(proxied, args);
+        }finally {
+        	lock.unlock();
+        }
+		
 	}
 
 

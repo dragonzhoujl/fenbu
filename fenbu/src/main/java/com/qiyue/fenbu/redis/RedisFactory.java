@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 public class RedisFactory {
@@ -23,6 +24,11 @@ public class RedisFactory {
 				in.close();
 			}
 		}
+	}
+	public static RedisClient getDefaultClient() {
+		JedisPool pool=new JedisPool("127.0.0.1");
+		RedisClient client=new RedisClient(pool);
+		return client;
 	}
 
 }
